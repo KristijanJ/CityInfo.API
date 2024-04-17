@@ -19,20 +19,10 @@ public class CitiesController : ControllerBase
   }
 
   [HttpGet]
-  public async Task<ActionResult<IEnumerable<CityWithoutPointsOfInterestDto>>> GetCities()
+  public async Task<ActionResult<IEnumerable<CityWithoutPointsOfInterestDto>>> GetCities(
+    [FromQuery] string? name)
   {
-    var cityEntities = await _cityInfoRepository.GetCitiesAsync();
-
-    // List<CityWithoutPointsOfInterestDto> results = [];
-    // foreach (var cityEntity in cityEntities)
-    // {
-    //   results.Add(new CityWithoutPointsOfInterestDto
-    //   {
-    //     Id = cityEntity.Id,
-    //     Description = cityEntity.Description,
-    //     Name = cityEntity.Name,
-    //   });
-    // }
+    var cityEntities = await _cityInfoRepository.GetCitiesAsync(name);
 
     return Ok(_mapper.Map<IEnumerable<CityWithoutPointsOfInterestDto>>(cityEntities));
   }
