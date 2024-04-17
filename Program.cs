@@ -3,13 +3,14 @@ using CityInfo.API.DbContexts;
 using CityInfo.API.Services;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .WriteTo.Console()
-    .WriteTo.File("logs/cityinfo.txt", rollingInterval: RollingInterval.Day)
-    .CreateLogger();
+  .MinimumLevel.Information()
+  .WriteTo.Console()
+  .WriteTo.File("logs/cityinfo.txt", rollingInterval: RollingInterval.Day)
+  .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,8 +20,8 @@ builder.Host.UseSerilog();
 
 builder.Services.AddControllers(options =>
 {
-    // if someone Accepts xml and we don't support it (we support only json), t return 406 status code
-    // options.ReturnHttpNotAcceptable = true;
+  // if someone Accepts xml and we don't support it (we support only json), t return 406 status code
+  // options.ReturnHttpNotAcceptable = true;
 }).AddNewtonsoftJson();
 // ADD XML SUPPORT
 // .AddXmlDataContractSerializerFormatters();
@@ -52,30 +53,54 @@ builder.Services.AddSingleton<CitiesDataStore>();
 
 builder.Services.AddDbContext<CityInfoContext>(dbContextOptions =>
 {
-    dbContextOptions.UseSqlite(builder.Configuration["ConnectionStrings:CityInfoDB"]);
+  dbContextOptions.UseSqlite(builder.Configuration["ConnectionStrings:CityInfoDB"]);
 });
 
 builder.Services.AddScoped<ICityInfoRepository, CityInfoRepository>();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+builder.Services.AddAuthentication("Bearer")
+  .AddJwtBearer(options =>
+  {
+    options.TokenValidationParameters = new()
+    {
+      ValidateIssuer = true,
+      ValidateAudience = true,
+      ValidateIssuerSigningKey = true,
+      ValidIssuer = builder.Configuration["Authentication:Issuer"],
+      ValidAudience = builder.Configuration["Authentication:Audience"],
+      IssuerSigningKey = new SymmetricSecurityKey(
+            Convert.FromBase64String(builder.Configuration["Authentication:SecretForKey"]))
+    };
+  });
+
+builder.Services.AddAuthorizationBuilder()
+  .AddPolicy("MustBeFromAntwerp", policy =>
+  {
+    policy.RequireAuthenticatedUser();
+    policy.RequireClaim("city", "Antwerp");
+  });
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler();
+  app.UseExceptionHandler();
 }
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+  app.UseSwagger();
+  app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
