@@ -45,17 +45,19 @@ public class CitiesController : ControllerBase
   /// <summary>
   /// Get a city by id
   /// </summary>
-  /// <param name="id">The id of the city to get</param>
+  /// <param name="cityId">The id of the city to get</param>
   /// <param name="includePointsOfInterest">Whether or not to include the points of interest</param>
   /// <returns>A city with or without points of interest</returns>
   /// <response code="200">Returns the requested city</response>
   /// <response code="404">The requested city was not found</response>
-  [HttpGet("{id}")]
+  /// <response code="400">A bad request</response>
+  [HttpGet("{cityId}")]
   [ProducesResponseType(StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status404NotFound)]
-  public async Task<IActionResult> GetCity(int id, bool includePointsOfInterest = false)
+  [ProducesResponseType(StatusCodes.Status400BadRequest)]
+  public async Task<IActionResult> GetCity(int cityId, bool includePointsOfInterest = false)
   {
-    var cityEntity = await _cityInfoRepository.GetCityAsync(id, includePointsOfInterest);
+    var cityEntity = await _cityInfoRepository.GetCityAsync(cityId, includePointsOfInterest);
 
     if (cityEntity == null)
     {
